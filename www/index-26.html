@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0B63CE" />
+  <title>Etiquetas Arkmeds • Engenharia Clínica</title>
+
+  <!-- Bibliotecas -->
+  <script src="js/xlsx.full.min.js"></script>
+  <script src="js/qrcode.min.js"></script>
+  <script src="js/html2canvas.min.js"></script>
+  <script src="js/jspdf.umd.min.js"></script>
+
+  <style>
+    :root{
+      --blue:#0B63CE;
+      --blue-2:#0A4EA3;
+      --blue-3:#EAF3FF;
+      --ink:#132238;
+      --muted:#6B778C;
+      --line:#DCE5F0;
+      --bg:#F4F7FB;
+      --card:#FFFFFF;
+      --danger:#C92A2A;
+      --success:#177245;
+      --shadow:0 12px 32px rgba(17, 38, 70, .10);
+      --radius:22px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+    body{padding-bottom:76px}
+    button,input{font:inherit}
+    button{cursor:pointer}
+    .app{max-width:780px;margin:0 auto;min-height:100vh}
+    .topbar{
+      position:sticky;top:0;z-index:20;
+      padding:calc(14px + env(safe-area-inset-top)) 18px 14px;
+      background:linear-gradient(135deg,var(--blue),#1477E9);
+      color:#fff;box-shadow:0 8px 28px rgba(11,99,206,.22)
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand-logo{
+      width:46px;height:46px;border-radius:15px;background:#fff;
+      display:grid;place-items:center;color:var(--blue);font-weight:900;font-size:22px;
+      box-shadow:0 6px 16px rgba(0,0,0,.12)
+    }
+    .brand-title{font-size:17px;font-weight:800;line-height:1.1}
+    .brand-subtitle{font-size:12px;opacity:.86;margin-top:4px}
+
+    main{padding:18px}
+    .screen{display:none}
+    .screen.active{display:block}
+
+    .hero{
+      padding:18px;border-radius:var(--radius);background:linear-gradient(135deg,#0D6DDA,#0B63CE 55%,#074994);
+      color:#fff;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;position:relative
+    }
+    .hero::after{
+      content:"";position:absolute;width:180px;height:180px;border-radius:50%;
+      background:rgba(255,255,255,.08);right:-65px;top:-85px
+    }
+    .hero h1{font-size:22px;margin:0 0 7px}
+    .hero p{margin:0;font-size:13px;line-height:1.5;opacity:.9;max-width:510px}
+
+    .card{
+      background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+      padding:16px;box-shadow:var(--shadow);margin-bottom:14px
+    }
+    .card-title{font-size:15px;font-weight:800;margin:0 0 4px}
+    .card-sub{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:14px}
+    .section-label{
+      font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
+      color:var(--blue);margin:0 0 8px
+    }
+
+    .search-wrap{position:relative}
+    .search-input,.text-input{
+      width:100%;border:1px solid #C9D6E5;background:#fff;border-radius:16px;
+      padding:14px 14px;font-size:14px;outline:none;transition:.2s
+    }
+    .search-input{padding-left:14px;position:relative;z-index:2;pointer-events:auto;touch-action:manipulation}
+    .search-input:focus,.text-input:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(11,99,206,.10)}
+    .hint{font-size:11px;color:var(--muted);margin-top:8px}
+
+    .results{display:grid;gap:10px;margin-top:12px}
+    .equipment{
+      border:1px solid var(--line);border-radius:17px;padding:13px;background:#fff;
+      display:flex;justify-content:space-between;gap:12px;align-items:center;transition:.18s
+    }
+    .equipment:hover{border-color:#B9CCE3;transform:translateY(-1px)}
+    .equipment-main{min-width:0}
+    .equipment-name{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .equipment-meta{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
+    .select-btn{
+      border:0;border-radius:13px;background:var(--blue-3);color:var(--blue);
+      font-weight:800;font-size:12px;padding:10px 13px;white-space:nowrap
+    }
+
+    .empty{text-align:center;padding:24px 10px;color:var(--muted);font-size:13px}
+    .empty-icon{
+      width:54px;height:54px;border-radius:18px;background:#EEF4FB;color:#7892AB;
+      display:grid;place-items:center;margin:0 auto 10px
+    }
+
+    .preview-grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:680px){.preview-grid{grid-template-columns:250px 1fr;align-items:start}}
+
+    .label-stage{
+      border-radius:18px;background:#E8EDF3;padding:18px;display:flex;
+      align-items:center;justify-content:center;min-height:300px
+    }
+
+    /* 5 cm de altura x 4 cm de largura. Visual escalado na tela. */
+    #label{
+      width:40mm;height:50mm;background:#fff;color:#000;
+      border-left:none;border-right:none;border-top:.45mm solid #000;border-bottom:.45mm solid #000;
+      display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+      padding:2.1mm 2.2mm 1.8mm;overflow:hidden;font-family:Arial,Helvetica,sans-serif;
+    }
+    .label-title{
+      width:100%;font-size:3.05mm;line-height:1.02;font-weight:900;text-align:center;
+      letter-spacing:.14mm;padding:0;margin-bottom:1.05mm
+    }
+    .label-subtitle{
+      font-size:1.75mm;line-height:1;text-align:center;font-weight:700;
+      margin-bottom:1.3mm;letter-spacing:.05mm
+    }
+    .qr-frame{
+      width:27.4mm;height:27.4mm;border:.28mm solid #000;border-radius:2.1mm;
+      display:flex;align-items:center;justify-content:center;background:#fff;
+      padding:1.2mm; margin-bottom:.9mm
+    }
+    #qr{
+      width:23.2mm;height:23.2mm;display:flex;align-items:center;justify-content:center;
+      flex:0 0 23.2mm
+    }
+    #qr img,#qr canvas{width:23.2mm!important;height:23.2mm!important;display:block}
+    .label-line{
+      margin-top:.2mm;width:100%;border-top:.28mm solid #000;padding-top:.95mm;
+      text-align:center;font-size:1.82mm;line-height:1.12;font-weight:800;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+    }
+    .label-data{
+      width:100%;display:grid;grid-template-columns:1fr 1fr;gap:1.1mm;
+      margin-top:.8mm;font-size:1.72mm;line-height:1.08
+    }
+    .label-data div{
+      min-width:0;text-align:center;
+      white-space:normal;overflow-wrap:anywhere;word-break:break-word;
+      max-height:4.2mm;overflow:hidden
+    }
+    .label-data b{font-weight:900}
+    .label-data .long-value{font-size:1.48mm;line-height:1.02}
+    .label-data .very-long-value{font-size:1.25mm;line-height:.98}
+
+    .selected-box{
+      padding:14px;border-radius:16px;background:#F7FAFE;border:1px solid #D9E6F4;margin-bottom:12px
+    }
+    .selected-name{font-weight:800;font-size:15px}
+    .selected-meta{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.55}
+    .url-preview{
+      margin-top:10px;padding:10px 11px;background:#fff;border:1px solid var(--line);
+      border-radius:12px;font-size:11px;color:#4F6680;word-break:break-all
+    }
+
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .btn{
+      border:0;border-radius:15px;padding:13px 14px;font-weight:800;font-size:13px;
+      display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px
+    }
+    .btn-primary{background:var(--blue);color:#fff;box-shadow:0 8px 20px rgba(11,99,206,.22)}
+    .btn-secondary{background:#EDF4FC;color:var(--blue)}
+    .btn-outline{background:#fff;border:1px solid #C9D6E5;color:var(--ink)}
+    .btn-danger{background:#FFF0F0;color:var(--danger)}
+    .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+
+    .config-grid{display:grid;gap:14px}
+    .field label{display:block;font-size:12px;font-weight:800;margin-bottom:7px}
+    .field-note{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5}
+
+    .file-drop{
+      border:1.5px dashed #AFC4DA;border-radius:18px;padding:18px;text-align:center;
+      background:#F8FBFF;position:relative
+    }
+    .file-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:4}
+    .file-icon{
+      width:52px;height:52px;border-radius:17px;background:var(--blue-3);color:var(--blue);
+      display:grid;place-items:center;margin:0 auto 9px;font-size:22px;font-weight:900
+    }
+    .file-drop strong{font-size:13px}
+    .file-drop span{display:block;font-size:11px;color:var(--muted);margin-top:5px}
+    .status{
+      padding:11px 12px;border-radius:13px;font-size:12px;line-height:1.45;margin-top:10px
+    }
+    .status.success{background:#EBF8F1;color:#17623F;border:1px solid #C6ECD8}
+    .status.info{background:#EEF5FF;color:#245A92;border:1px solid #D7E6FA}
+    .status.warn{background:#FFF8E6;color:#7B5C09;border:1px solid #F3E2AA}
+
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .stat{padding:13px;border-radius:16px;background:#F7FAFE;border:1px solid var(--line)}
+    .stat strong{display:block;font-size:20px;color:var(--blue)}
+    .stat span{font-size:11px;color:var(--muted)}
+
+    .bottom-nav{
+      position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:30;
+      width:min(780px,100%);padding:6px 12px 6px;
+      background:rgba(255,255,255,.94);backdrop-filter:blur(18px);border-top:1px solid #DDE6F0;
+      display:grid;grid-template-columns:1fr 1fr;gap:8px
+    }
+    .nav-btn{
+      border:0;background:transparent;border-radius:14px;padding:5px 8px;
+      color:#718197;font-weight:800;font-size:11px;display:flex;flex-direction:column;
+      align-items:center;gap:4px
+    }
+    .nav-btn svg{width:21px;height:21px}
+    .nav-btn.active{color:var(--blue);background:#EDF5FF}
+
+    .toast{
+      position:fixed;left:50%;bottom:100px;transform:translate(-50%,20px);
+      background:#132238;color:#fff;padding:11px 14px;border-radius:13px;
+      font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:.25s;z-index:80;
+      width:max-content;max-width:calc(100vw - 36px);text-align:center
+    }
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    .small-link{
+      color:var(--blue);font-weight:800;text-decoration:none;font-size:12px
+    }
+
+    .modal{
+      position:fixed;inset:0;background:rgba(9,23,42,.44);z-index:100;
+      display:none;align-items:center;justify-content:center;padding:18px
+    }
+    .modal.show{display:flex}
+    .modal-card{
+      width:min(430px,100%);background:#fff;border-radius:24px;padding:19px;
+      box-shadow:0 25px 60px rgba(0,0,0,.22)
+    }
+    .modal-title{font-size:18px;font-weight:900;margin:0 0 7px}
+    .modal-text{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:16px}
+    .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+    .hidden{display:none!important}
+  
+    .app-splash{
+      position:fixed;inset:0;z-index:9999;background:#0B63CE;
+      display:flex;align-items:center;justify-content:center;
+      opacity:1;visibility:visible;
+      transition:opacity .35s ease,visibility .35s ease;
+    }
+    .app-splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+    .app-splash img{width:100%;height:100%;object-fit:cover;display:block}
+
+  </style>
+</head>
+<body>
+
+<div id="appSplash" class="app-splash" aria-hidden="true">
+  <img src="img/splash.png" alt="">
+</div>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">EC</div>
+      <div>
+        <div class="brand-title">Etiquetas Arkmeds</div>
+        <div class="brand-subtitle">Engenharia Clínica • QR Code de chamados</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section id="screen-home" class="screen active">
+      <div class="hero">
+        <h1>Gerador de etiquetas</h1>
+        <p>A lista de equipamentos aparece automaticamente. Use a busca por nome, patrimônio ou série para localizar mais rápido.</p>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Localizar equipamento</div>
+        <div class="search-wrap">
+          <input id="search" class="search-input" placeholder="Nome, patrimônio ou número de série..." autocomplete="off" inputmode="search" />
+        </div>
+        <div class="hint">A busca ignora maiúsculas, minúsculas e acentos.</div>
+        <div id="results" class="results"></div>
+      </div>
+
+      <div id="previewCard" class="card hidden">
+        <div class="section-label">Etiqueta selecionada</div>
+        <div class="preview-grid">
+          <div class="label-stage">
+            <div id="label">
+              <div class="label-title">ABRA SEU CHAMADO</div>
+              <div class="label-subtitle">Engenharia Clínica</div>
+              <div class="qr-frame">
+                <div id="qr"></div>
+              </div>
+              <div id="labelEquipment" class="label-line">EQUIPAMENTO</div>
+              <div class="label-data">
+                <div><b>PAT:</b> <span id="labelPat">—</span></div>
+                <div><b>S/N:</b> <span id="labelSerie">—</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="selected-box">
+              <div id="selectedName" class="selected-name">—</div>
+              <div id="selectedMeta" class="selected-meta">—</div>
+              <div id="selectedUrl" class="url-preview"></div>
+            </div>
+
+            <div class="actions">
+              <button id="downloadPng" class="btn btn-primary">
+                <span>↓</span> Baixar imagem
+              </button>
+              <button id="downloadPdf" class="btn btn-secondary">
+                <span>PDF</span> Baixar PDF
+              </button>
+            </div>
+
+            <div class="status info">
+              O PDF é criado com página de <b>40 × 50 mm</b>, o mesmo tamanho físico da etiqueta.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONFIG -->
+    <section id="screen-config" class="screen">
+      <div class="hero">
+        <h1>Configurações</h1>
+        <p>Atualize o endereço base do Arkmeds e substitua a lista de equipamentos com segurança.</p>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Base Arkmeds</div>
+        <div class="field">
+          <label for="baseUrl">Link base do equipamento</label>
+          <input id="baseUrl" class="text-input" type="url" />
+          <div class="field-note">
+            Use o endereço sem o ID final. Exemplo:
+            <br><b>https://digit.arkmeds.com/cadastros/equipamento/visual/</b>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <button id="saveBaseUrl" class="btn btn-primary" style="width:100%">Salvar alteração do link</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Planilha de equipamentos</div>
+        <div class="card-title">Importar ou atualizar base</div>
+        <div class="card-sub">
+          Aceita XLSX, XLS ou CSV. A planilha precisa conter as colunas de equipamento, patrimônio, série e ID.
+        </div>
+
+        <div class="file-drop">
+          <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" />
+          <div class="file-icon">⇧</div>
+          <strong>Selecionar planilha</strong>
+          <span>Toque ou clique para escolher o arquivo</span>
+        </div>
+
+        <div class="status info">
+          Colunas aceitas: <b>Equipamento</b>, <b>Patrimônio</b>, <b>Série</b> e <b>ID</b>.
+          Também são reconhecidas variações como “Nome”, “Patrimonio”, “Serial” e “Id Arkmeds”.
+        </div>
+
+        <div id="pendingImport" class="status warn hidden"></div>
+
+        <div id="importActions" class="actions hidden" style="margin-top:10px">
+          <button id="cancelImport" class="btn btn-outline">Cancelar</button>
+          <button id="confirmImport" class="btn btn-primary">Confirmar atualização</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Base atual</div>
+        <div class="stats">
+          <div class="stat">
+            <strong id="countEquipment">0</strong>
+            <span>equipamentos cadastrados</span>
+          </div>
+          <div class="stat">
+            <strong id="countWithId">0</strong>
+            <span>com ID válido</span>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <button id="clearDatabase" class="btn btn-danger" style="width:100%">Apagar base de equipamentos</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Modelo de planilha</div>
+        <div class="card-sub" style="margin-bottom:10px">
+          Gere um arquivo de exemplo com as colunas corretas para preencher.
+        </div>
+        <button id="downloadTemplate" class="btn btn-outline" style="width:100%">Baixar modelo XLSX</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-screen="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10.5V20h13v-9.5"></path>
+      </svg>
+      Home
+    </button>
+    <button class="nav-btn" data-screen="config">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1a1.7 1.7 0 0 0-1.4-1.6 1.7 1.7 0 0 0-1.8.4l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 3.9 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2v-4h.2a1.7 1.7 0 0 0 1.6-1.4 1.7 1.7 0 0 0-.4-1.8l-.06-.06L6.17 3.5l.06.06A1.7 1.7 0 0 0 8 3.9a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 9.4 2.2V2h4v.2a1.7 1.7 0 0 0 1.4 1.6 1.7 1.7 0 0 0 1.8-.4l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 20.1 8c.1.4.3.8.6 1 .3.3.7.4 1.1.4h.2v4h-.2a1.7 1.7 0 0 0-1.6 1.4c-.1.1-.1.2-.1.2z"></path>
+      </svg>
+      Configuração
+    </button>
+  </nav>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div id="confirmModal" class="modal">
+  <div class="modal-card">
+    <h2 id="modalTitle" class="modal-title">Confirmar alteração</h2>
+    <div id="modalText" class="modal-text"></div>
+    <div class="modal-actions">
+      <button id="modalCancel" class="btn btn-outline">Cancelar</button>
+      <button id="modalConfirm" class="btn btn-primary">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const DEFAULT_BASE = 'https://digit.arkmeds.com/cadastros/equipamento/visual/';
+  const DB_KEY = 'arkmeds_equipment_db_v1';
+  const BASE_KEY = 'arkmeds_base_url_v1';
+
+  let equipment = loadEquipment();
+  let selected = null;
+  let pendingRows = null;
+  let modalAction = null;
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    search: $('search'),
+    results: $('results'),
+    previewCard: $('previewCard'),
+    qr: $('qr'),
+    labelEquipment: $('labelEquipment'),
+    labelPat: $('labelPat'),
+    labelSerie: $('labelSerie'),
+    selectedName: $('selectedName'),
+    selectedMeta: $('selectedMeta'),
+    selectedUrl: $('selectedUrl'),
+    downloadPng: $('downloadPng'),
+    downloadPdf: $('downloadPdf'),
+    baseUrl: $('baseUrl'),
+    saveBaseUrl: $('saveBaseUrl'),
+    fileInput: $('fileInput'),
+    pendingImport: $('pendingImport'),
+    importActions: $('importActions'),
+    confirmImport: $('confirmImport'),
+    cancelImport: $('cancelImport'),
+    countEquipment: $('countEquipment'),
+    countWithId: $('countWithId'),
+    clearDatabase: $('clearDatabase'),
+    downloadTemplate: $('downloadTemplate'),
+    toast: $('toast'),
+    confirmModal: $('confirmModal'),
+    modalTitle: $('modalTitle'),
+    modalText: $('modalText'),
+    modalCancel: $('modalCancel'),
+    modalConfirm: $('modalConfirm')
+  };
+
+  els.baseUrl.value = getBaseUrl();
+  updateStats();
+  renderResults('');
+
+  function normalizeText(value) {
+    return String(value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  function clean(value) {
+    if (value === null || value === undefined) return '';
+    return String(value).trim();
+  }
+
+  function loadEquipment() {
+    try {
+      const data = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveEquipment(data) {
+    equipment = data;
+    localStorage.setItem(DB_KEY, JSON.stringify(data));
+    updateStats();
+  }
+
+  function getBaseUrl() {
+    return localStorage.getItem(BASE_KEY) || DEFAULT_BASE;
+  }
+
+  function normalizeBaseUrl(url) {
+    let value = clean(url);
+    if (!value) return DEFAULT_BASE;
+    value = value.replace(/\s+/g, '');
+    if (!/^https?:\/\//i.test(value)) value = 'https://' + value;
+    value = value.replace(/\/+$/, '') + '/';
+    return value;
+  }
+
+  function equipmentUrl(item) {
+    return normalizeBaseUrl(getBaseUrl()) + encodeURIComponent(clean(item.id));
+  }
+
+  function toast(message) {
+    els.toast.textContent = message;
+    els.toast.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => els.toast.classList.remove('show'), 2500);
+  }
+
+  function openConfirm(title, text, action, danger=false) {
+    modalAction = action;
+    els.modalTitle.textContent = title;
+    els.modalText.innerHTML = text;
+    els.modalConfirm.textContent = 'Confirmar';
+    els.modalConfirm.className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
+    els.confirmModal.classList.add('show');
+  }
+
+  function closeConfirm() {
+    modalAction = null;
+    els.confirmModal.classList.remove('show');
+  }
+
+  els.modalCancel.addEventListener('click', closeConfirm);
+  els.confirmModal.addEventListener('click', (e) => {
+    if (e.target === els.confirmModal) closeConfirm();
+  });
+  els.modalConfirm.addEventListener('click', () => {
+    const fn = modalAction;
+    closeConfirm();
+    if (typeof fn === 'function') fn();
+  });
+
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const screen = btn.dataset.screen;
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      $('screen-' + screen).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  function renderResults(query) {
+    const q = normalizeText(query);
+
+    if (!equipment.length) {
+      els.results.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">⌁</div>
+          <b>Nenhuma planilha importada</b><br>
+          Vá em <b>Configuração</b> e insira sua planilha de equipamentos.
+        </div>`;
+      return;
+    }
+
+    const filtered = (q
+      ? equipment.filter(item => {
+          const hay = normalizeText([item.nome, item.patrimonio, item.serie, item.id].join(' '));
+          return hay.includes(q);
+        })
+      : equipment
+    ).slice(0, 50);
+
+    if (!filtered.length) {
+      els.results.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">×</div>
+          Nenhum equipamento encontrado para essa busca.
+        </div>`;
+      return;
+    }
+
+    els.results.innerHTML = '';
+    filtered.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'equipment';
+
+      const info = document.createElement('div');
+      info.className = 'equipment-main';
+      info.innerHTML = `
+        <div class="equipment-name">${escapeHtml(item.nome || 'Equipamento sem nome')}</div>
+        <div class="equipment-meta">
+          Patrimônio: ${escapeHtml(item.patrimonio || '—')} • Série: ${escapeHtml(item.serie || '—')} • ID: ${escapeHtml(item.id || '—')}
+        </div>`;
+
+      const btn = document.createElement('button');
+      btn.className = 'select-btn';
+      btn.textContent = 'Gerar etiqueta';
+      btn.addEventListener('click', () => selectEquipment(item));
+
+      row.append(info, btn);
+      els.results.appendChild(row);
+    });
+  }
+
+  els.search.addEventListener('input', (e) => renderResults(e.target.value));
+
+  function fitLabelValue(el, value) {
+    const text = String(value || '—').trim() || '—';
+    el.textContent = text;
+    const parent = el.parentElement;
+    parent.classList.remove('long-value', 'very-long-value');
+
+    if (text.length > 18) {
+      parent.classList.add('very-long-value');
+    } else if (text.length > 11) {
+      parent.classList.add('long-value');
+    }
+  }
+
+  function selectEquipment(item) {
+    if (!clean(item.id)) {
+      toast('Este equipamento não possui ID Arkmeds.');
+      return;
+    }
+    selected = item;
+    const url = equipmentUrl(item);
+
+    els.previewCard.classList.remove('hidden');
+    els.selectedName.textContent = item.nome || 'Equipamento';
+    els.selectedMeta.textContent =
+      `Patrimônio: ${item.patrimonio || '—'} • Série: ${item.serie || '—'} • ID: ${item.id}`;
+    els.selectedUrl.textContent = url;
+
+    els.labelEquipment.textContent = (item.nome || 'EQUIPAMENTO').toUpperCase();
+    fitLabelValue(els.labelPat, item.patrimonio);
+    fitLabelValue(els.labelSerie, item.serie);
+
+    els.qr.innerHTML = '';
+    new QRCode(els.qr, {
+      text: url,
+      width: 256,
+      height: 256,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    setTimeout(() => {
+      els.previewCard.scrollIntoView({ behavior:'smooth', block:'start' });
+    }, 80);
+  }
+
+  function safeFilename(value) {
+    return String(value || 'etiqueta')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-zA-Z0-9_-]+/g,'_')
+      .replace(/^_+|_+$/g,'')
+      .slice(0,70) || 'etiqueta';
+  }
+
+  async function labelCanvas() {
+    if (!selected) throw new Error('Nenhum equipamento selecionado');
+    return await html2canvas($('label'), {
+      backgroundColor: '#ffffff',
+      scale: 5,
+      useCORS: true,
+      logging: false
+    });
+  }
+
+  els.downloadPng.addEventListener('click', async () => {
+    if (!selected) return;
+    try {
+      const canvas = await labelCanvas();
+      const a = document.createElement('a');
+      a.download = `${safeFilename(selected.nome)}_${safeFilename(selected.patrimonio)}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      toast('Imagem da etiqueta salva.');
+    } catch (err) {
+      console.error(err);
+      toast('Não foi possível gerar a imagem.');
+    }
+  });
+
+  els.downloadPdf.addEventListener('click', async () => {
+    if (!selected) return;
+    try {
+      const canvas = await labelCanvas();
+      const img = canvas.toDataURL('image/png', 1.0);
+      const { jsPDF } = window.jspdf;
+
+      // Página física exata: largura 40 mm x altura 50 mm.
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [40, 50],
+        compress: true
+      });
+
+      pdf.addImage(img, 'PNG', 0, 0, 40, 50, undefined, 'FAST');
+      pdf.save(`${safeFilename(selected.nome)}_${safeFilename(selected.patrimonio)}_40x50mm.pdf`);
+      toast('PDF 40 × 50 mm salvo.');
+    } catch (err) {
+      console.error(err);
+      toast('Não foi possível gerar o PDF.');
+    }
+  });
+
+  els.saveBaseUrl.addEventListener('click', () => {
+    const proposed = normalizeBaseUrl(els.baseUrl.value);
+    const current = getBaseUrl();
+
+    if (proposed === current) {
+      els.baseUrl.value = current;
+      toast('O link já está salvo.');
+      return;
+    }
+
+    openConfirm(
+      'Confirmar alteração do link',
+      `O link base será alterado para:<br><br><b style="word-break:break-all">${escapeHtml(proposed)}</b><br><br>Isso muda o endereço gerado em todas as próximas etiquetas.`,
+      () => {
+        localStorage.setItem(BASE_KEY, proposed);
+        els.baseUrl.value = proposed;
+        if (selected) selectEquipment(selected);
+        toast('Link base atualizado.');
+      }
+    );
+  });
+
+  function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error('Falha ao ler o arquivo.'));
+      reader.onabort = () => reject(new Error('Leitura do arquivo cancelada.'));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // Permite escolher novamente o mesmo arquivo no Android, caso seja necessário.
+  els.fileInput.addEventListener('click', () => {
+    els.fileInput.value = '';
+  });
+
+  els.fileInput.addEventListener('change', async (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    try {
+      if (typeof XLSX === 'undefined') {
+        throw new Error('Biblioteca XLSX não carregada.');
+      }
+
+      const buffer = await readFileAsArrayBuffer(file);
+      const workbook = XLSX.read(buffer, { type:'array' });
+
+      if (!workbook.SheetNames || !workbook.SheetNames.length) {
+        throw new Error('A planilha não possui abas válidas.');
+      }
+
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(firstSheet, { defval:'', raw:false });
+
+      const parsed = parseRows(rawRows);
+
+      if (!parsed.length) {
+        pendingRows = null;
+        els.pendingImport.classList.remove('hidden');
+        els.pendingImport.innerHTML =
+          'Não encontrei registros válidos. Confira se a planilha possui as colunas <b>Equipamento</b>, <b>Patrimônio</b>, <b>Série</b> e <b>ID</b>.';
+        els.importActions.classList.add('hidden');
+        return;
+      }
+
+      pendingRows = parsed;
+      const withId = parsed.filter(x => clean(x.id)).length;
+      els.pendingImport.classList.remove('hidden');
+      els.pendingImport.innerHTML =
+        `Arquivo lido: <b>${escapeHtml(file.name)}</b><br>` +
+        `Foram encontrados <b>${parsed.length}</b> equipamentos, sendo <b>${withId}</b> com ID preenchido.<br><br>` +
+        `<b>A base atual ainda não foi alterada.</b> Toque em <b>Confirmar atualização</b> para carregar os equipamentos na Home.`;
+      els.importActions.classList.remove('hidden');
+    } catch (err) {
+      console.error(err);
+      pendingRows = null;
+      els.pendingImport.classList.remove('hidden');
+      els.pendingImport.textContent = 'Não foi possível ler esse arquivo. Verifique se é um XLSX, XLS ou CSV válido.';
+      els.importActions.classList.add('hidden');
+    }
+  });
+
+  els.cancelImport.addEventListener('click', () => {
+    pendingRows = null;
+    els.fileInput.value = '';
+    els.pendingImport.classList.add('hidden');
+    els.importActions.classList.add('hidden');
+    toast('Atualização cancelada.');
+  });
+
+  els.confirmImport.addEventListener('click', () => {
+    if (!pendingRows?.length) return;
+
+    openConfirm(
+      'Confirmar atualização da planilha',
+      `Deseja substituir a base atual por <b>${pendingRows.length} equipamentos</b>?<br><br>A lista anterior armazenada neste aparelho será substituída.`,
+      () => {
+        saveEquipment(pendingRows);
+        pendingRows = null;
+        selected = null;
+        els.previewCard.classList.add('hidden');
+        els.search.value = '';
+        renderResults('');
+        els.fileInput.value = '';
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.screen === 'home'));
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        $('screen-home').classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        els.pendingImport.classList.add('hidden');
+        els.importActions.classList.add('hidden');
+        toast('Planilha atualizada com sucesso.');
+      }
+    );
+  });
+
+  els.clearDatabase.addEventListener('click', () => {
+    if (!equipment.length) {
+      toast('A base já está vazia.');
+      return;
+    }
+    openConfirm(
+      'Apagar base de equipamentos',
+      `Tem certeza que deseja apagar os <b>${equipment.length} equipamentos</b> armazenados neste aparelho?<br><br>Essa ação não altera nada no Arkmeds, somente a lista local do aplicativo.`,
+      () => {
+        saveEquipment([]);
+        selected = null;
+        els.previewCard.classList.add('hidden');
+        els.search.value = '';
+        renderResults('');
+        toast('Base de equipamentos apagada.');
+      },
+      true
+    );
+  });
+
+  els.downloadTemplate.addEventListener('click', () => {
+    const data = [
+      { Equipamento:'Monitor Multiparâmetro', 'Patrimônio':'12345', 'Série':'SN001234', ID:'2393' },
+      { Equipamento:'Bomba de Infusão', 'Patrimônio':'12346', 'Série':'SN001235', ID:'2394' }
+    ];
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = [{wch:28},{wch:16},{wch:18},{wch:12}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Equipamentos');
+    XLSX.writeFile(wb, 'modelo_equipamentos_arkmeds.xlsx');
+  });
+
+  function parseRows(rows) {
+    const aliases = {
+      nome: ['equipamento','nome','nome do equipamento','descricao','descrição','tipo de equipamento'],
+      patrimonio: ['patrimonio','patrimônio','pat','numero patrimonio','número patrimônio','numero do patrimonio','número do patrimônio'],
+      serie: ['serie','série','serial','numero de serie','número de série','numero serie','número série','sn','s/n'],
+      id: ['id','id arkmeds','arkmeds id','codigo arkmeds','código arkmeds','id equipamento','id do equipamento']
+    };
+
+    function normalizedKeys(obj) {
+      const map = {};
+      Object.keys(obj).forEach(key => map[normalizeText(key)] = obj[key]);
+      return map;
+    }
+
+    function getValue(map, names) {
+      for (const name of names) {
+        const n = normalizeText(name);
+        if (Object.prototype.hasOwnProperty.call(map, n)) return clean(map[n]);
+      }
+      return '';
+    }
+
+    return rows.map(row => {
+      const map = normalizedKeys(row);
+      return {
+        nome: getValue(map, aliases.nome),
+        patrimonio: getValue(map, aliases.patrimonio),
+        serie: getValue(map, aliases.serie),
+        id: getValue(map, aliases.id).replace(/\.0$/, '')
+      };
+    }).filter(item => item.nome || item.patrimonio || item.serie || item.id);
+  }
+
+  function updateStats() {
+    els.countEquipment.textContent = equipment.length;
+    els.countWithId.textContent = equipment.filter(x => clean(x.id)).length;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#039;');
+  }
+})();
+</script>
+
+<script>
+(function(){
+  function fecharSplash(){
+    const el=document.getElementById('appSplash');
+    if(!el) return;
+    el.classList.add('hide');
+    setTimeout(()=>{ if(el && el.parentNode) el.remove(); },450);
+  }
+  window.addEventListener('load',()=>setTimeout(fecharSplash,1400));
+  setTimeout(fecharSplash,3000);
+})();
+</script>
+
+</body>
+</html>
