@@ -1,0 +1,8 @@
+GERADOR QR CHAMADOS — PACOTE PARA GITHUB
+
+1. Extraia este ZIP.
+2. Envie o CONTEÚDO descompactado para a branch main.
+3. Mantenha todas as pastas.
+4. O GitHub Actions iniciará automaticamente.
+5. O APK final ficará em:
+   saida/Gerador_QR_Chamados.apk

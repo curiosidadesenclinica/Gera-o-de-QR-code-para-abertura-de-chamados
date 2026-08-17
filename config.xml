@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget id="com.curiosidadesenclinica.geradorqrchamados"
+        version="1.0.0"
+        xmlns="http://www.w3.org/ns/widgets"
+        xmlns:cdv="http://cordova.apache.org/ns/1.0">
+
+    <name>Gerador QR Chamados</name>
+    <description>Gerador de QR Code para abertura de chamados da Engenharia Clínica</description>
+    <author>Engenharia Clínica</author>
+
+    <content src="index.html" />
+    <access origin="*" />
+
+    <allow-navigation href="https://*/*" />
+    <allow-navigation href="http://*/*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+
+    <preference name="Fullscreen" value="false" />
+    <preference name="StatusBarOverlaysWebView" value="false" />
+    <preference name="AndroidXEnabled" value="true" />
+    <preference name="android-targetSdkVersion" value="36" />
+    <preference name="android-compileSdkVersion" value="36" />
+
+    <icon src="resources/icon.png" />
+
+    <platform name="android">
+        <icon src="resources/icon.png" />
+        <preference name="AndroidWindowSplashScreenBackground" value="#0B63CE" />
+        <preference name="AndroidWindowSplashScreenAnimatedIcon" value="resources/icon.png" />
+        <preference name="AndroidWindowSplashScreenAnimationDuration" value="300" />
+    </platform>
+</widget>
