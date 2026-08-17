@@ -1,0 +1,1 @@
+As 4 bibliotecas são baixadas pelo GitHub Actions antes da compilação e ficam locais no APK.
