@@ -1,0 +1,1 @@
+# Gera-o-de-QR-code-para-abertura-de-chamados
